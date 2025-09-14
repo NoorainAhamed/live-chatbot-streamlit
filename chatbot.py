@@ -1,3 +1,7 @@
+import streamlit as st
+import wikipedia
+
+st.title("🧠 Simple Python Chatbot with Wikipedia")
 # Import required libraries
 import re
 import random
