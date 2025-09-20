@@ -18,155 +18,34 @@ st.set_page_config(
 
 # Custom CSS for styling with the provided color scheme
 st.markdown(f"""
-<style>
-    /* Global styles */
-    .stApp {{
-        background-color: #F9FAFB;
-    }}
-    .main-header {{
-        font-size: 3rem;
-        color: #2563EB;
-        text-align: center;
-        margin-bottom: 1rem;
-        font-weight: 700;
-    }}
-    .sub-header {{
-        color: #2563EB;
-        font-weight: 600;
-    }}
-    /* Chat container */
-    .chat-container {{
-        background-color: #FFFFFF;
-        border-radius: 16px;
-        padding: 20px;
-        height: 600px;
-        overflow-y: auto;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        border: 1px solid #E5E7EB;
-    }}
-    /* Message styles */
-    .user-message {{
-        background-color: #2563EB;
-        color: white;
-        padding: 12px 16px;
-        border-radius: 18px 18px 0 18px;
-        margin: 10px 0;
-        max-width: 80%;
-        margin-left: auto;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }}
-    .bot-message {{
-        background-color: #F3F4F6;
-        color: #111827;
-        padding: 12px 16px;
-        border-radius: 18px 18px 18px 0;
-        margin: 10px 0;
-        max-width: 80%;
-        margin-right: auto;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }}
-    .message-time {{
-        font-size: 0.7rem;
-        color: #6B7280;
-        text-align: right;
-        margin-top: 5px;
-    }}
-    /* Button styles */
-    .stButton button {{
-        background-color: #2563EB;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 16px;
-        transition: all 0.3s;
-    }}
-    .stButton button:hover {{
-        background-color: #3B82F6;
-        color: white;
-    }}
-    /* Suggestion chips */
-    .suggestion-chip {{
+    }
+    .stChatInput textarea:focus {
+        border-color: #3B82F6 !important;
+        outline: none !important;
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.5) !important;
+    }
+    /* Response done indicator */
+    .response-done {
         display: inline-block;
-        background-color: #EFF6FF;
-        color: #2563EB;
-        padding: 8px 16px;
-        border-radius: 20px;
-        margin: 5px;
-        cursor: pointer;
-        transition: all 0.2s;
-        border: 1px solid #BFDBFE;
-        font-size: 0.9rem;
-    }}
-    .suggestion-chip:hover {{
-        background-color: #DBEAFE;
-        color: #1E40AF;
-    }}
-    /* File upload area */
-    .uploaded-file {{
-        background-color: #F0FDF4;
-        padding: 12px;
-        border-radius: 8px;
-        margin: 10px 0;
-        border-left: 4px solid #16A34A;
-    }}
-    /* Voice recording button */
-    .voice-recorder {{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin: 15px 0;
-    }}
-    /* Sidebar */
-    .sidebar .sidebar-content {{
-        background-color: #FFFFFF;
-    }}
-    /* Metrics */
-    .stMetric {{
-        background-color: #FFFFFF;
-        padding: 10px;
-        border-radius: 8px;
-        border-left: 4px solid #2563EB;
-    }}
-    /* Tabs */
-    .stTabs [data-baseweb="tab-list"] {{
-        gap: 8px;
-    }}
-    .stTabs [data-baseweb="tab"] {{
-        background-color: #F3F4F6;
-        border-radius: 8px 8px 0 0;
-        padding: 10px 16px;
-        font-weight: 500;
-    }}
-    .stTabs [aria-selected="true"] {{
-        background-color: #2563EB;
+        background-color: #16A34A;
         color: white;
-    }}
-    /* Success, Error, Warning */
-    .success-box {{
-        background-color: #F0FDF4;
-        color: #166534;
-        padding: 12px;
-        border-radius: 8px;
-        border-left: 4px solid #16A34A;
-        margin: 10px 0;
-    }}
-    .error-box {{
-        background-color: #FEF2F2;
-        color: #991B1B;
-        padding: 12px;
-        border-radius: 8px;
-        border-left: 4px solid #DC2626;
-        margin: 10px 0;
-    }}
-    .warning-box {{
-        background-color: #FFFBEB;
-        color: #92400E;
-        padding: 12px;
-        border-radius: 8px;
-        border-left: 4px solid #F59E0B;
-        margin: 10px 0;
-    }}
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        margin-left: 12px;
+        user-select: none;
+        box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+        vertical-align: middle;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
 </style>
+
 """, unsafe_allow_html=True)
 
 # Title with custom styling
@@ -437,3 +316,4 @@ if user_input and user_input.strip():
     
     # Rerun to update the conversation
     st.rerun()
+
