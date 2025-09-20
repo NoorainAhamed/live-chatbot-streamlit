@@ -18,7 +18,6 @@ st.set_page_config(
 
 # Custom CSS for styling with the provided color scheme
 st.markdown(f"""
-    }
     .stChatInput textarea:focus {
         border-color: #3B82F6 !important;
         outline: none !important;
@@ -316,4 +315,5 @@ if user_input and user_input.strip():
     
     # Rerun to update the conversation
     st.rerun()
+
 
