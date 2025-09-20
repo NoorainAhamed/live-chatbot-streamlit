@@ -1,21 +1,39 @@
 import streamlit as st
-import wikipedia
 import requests
 from io import BytesIO
 from PIL import Image
 import random
-import PyPDF2
-import speech_recognition as sr
 import tempfile
 import os
 
-# Try to import docx with error handling
+# Try to import all optional dependencies with error handling
+try:
+    import wikipedia
+    WIKIPEDIA_AVAILABLE = True
+except ImportError:
+    WIKIPEDIA_AVAILABLE = False
+    st.warning("Wikipedia module not available. Install with: pip install wikipedia")
+
+try:
+    import PyPDF2
+    PDF_AVAILABLE = True
+except ImportError:
+    PDF_AVAILABLE = False
+    st.warning("PDF support not available. Install with: pip install PyPDF2")
+
 try:
     import docx
     DOCX_AVAILABLE = True
 except ImportError:
     DOCX_AVAILABLE = False
-    st.warning("Note: DOCX support is not available. Please install python-docx for full functionality.")
+    st.warning("DOCX support not available. Install with: pip install python-docx")
+
+try:
+    import speech_recognition as sr
+    SPEECH_RECOGNITION_AVAILABLE = True
+except ImportError:
+    SPEECH_RECOGNITION_AVAILABLE = False
+    st.warning("Speech recognition not available. Install with: pip install SpeechRecognition")
 
 # ---------------------------
 # PAGE CONFIG
@@ -122,13 +140,17 @@ st.markdown("### Your assistant with Wikipedia knowledge, voice, and file unders
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/4711/4711984.png", width=100)
     st.title("About Robo Chatbot")
-    st.info("""
-    I can:
-    - Answer questions using Wikipedia
-    - Read and analyze files
-    - Understand uploaded images
-    - Support voice input
-    """)
+    
+    capabilities = ["Answer general questions"]
+    if WIKIPEDIA_AVAILABLE:
+        capabilities.append("Answer questions using Wikipedia")
+    if PDF_AVAILABLE or DOCX_AVAILABLE:
+        capabilities.append("Read and analyze files")
+    capabilities.append("Understand uploaded images")
+    if SPEECH_RECOGNITION_AVAILABLE:
+        capabilities.append("Support voice input")
+    
+    st.info("\n".join([f"- {cap}" for cap in capabilities]))
     
     st.subheader("Settings")
     if st.button("Clear Conversation"):
@@ -141,10 +163,7 @@ with st.sidebar:
                       "Explain quantum computing"]
     for query in example_queries:
         if st.button(f"'{query}'"):
-            if "user_input" not in st.session_state:
-                st.session_state.user_input = query
-            else:
-                st.session_state.user_input = query
+            st.session_state.user_input = query
 
 # ---------------------------
 # SESSION MEMORY
@@ -156,6 +175,9 @@ if "messages" not in st.session_state:
 # HELPER FUNCTIONS
 # ---------------------------
 def get_wikipedia_image(page_title):
+    if not WIKIPEDIA_AVAILABLE:
+        return None, None
+        
     try:
         page = wikipedia.page(page_title, auto_suggest=False)
         for img_url in page.images[:5]:
@@ -169,7 +191,7 @@ def get_wikipedia_image(page_title):
     return None, None
 
 def read_file(uploaded_file):
-    if uploaded_file.type == "application/pdf":
+    if uploaded_file.type == "application/pdf" and PDF_AVAILABLE:
         try:
             reader = PyPDF2.PdfReader(uploaded_file)
             return "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
@@ -180,18 +202,18 @@ def read_file(uploaded_file):
             return uploaded_file.read().decode("utf-8")
         except Exception as e:
             return f"❌ Error reading text file: {str(e)}"
-    elif uploaded_file.type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
-        if DOCX_AVAILABLE:
-            try:
-                doc = docx.Document(uploaded_file)
-                return "\n".join([para.text for para in doc.paragraphs])
-            except Exception as e:
-                return f"❌ Error reading DOCX file: {str(e)}"
-        else:
-            return "❌ DOCX support is not available. Please install python-docx package."
-    return "❌ Unsupported file type."
+    elif uploaded_file.type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] and DOCX_AVAILABLE:
+        try:
+            doc = docx.Document(uploaded_file)
+            return "\n".join([para.text for para in doc.paragraphs])
+        except Exception as e:
+            return f"❌ Error reading DOCX file: {str(e)}"
+    return "❌ Unsupported file type or required library not installed."
 
 def recognize_voice():
+    if not SPEECH_RECOGNITION_AVAILABLE:
+        return "❌ Speech recognition not available. Please install SpeechRecognition package."
+    
     try:
         recognizer = sr.Recognizer()
         with sr.Microphone() as source:
@@ -224,7 +246,7 @@ def chatbot_response(user_input, file_content=None):
         return "You're welcome! Is there anything else you'd like to know?", None, ["Tell me a fact", "What is deep learning?"]
     elif file_content:
         return f"📄 I analyzed your file and here's what I found:\n\n{file_content[:800]}...", None, ["Summarize this file", "What's the main topic?"]
-    else:
+    elif WIKIPEDIA_AVAILABLE:
         try:
             summary = wikipedia.summary(user_input, sentences=5)
             img, img_url = get_wikipedia_image(user_input)
@@ -237,6 +259,8 @@ def chatbot_response(user_input, file_content=None):
             return "❌ Sorry, I couldn't find anything on Wikipedia for that.", None, []
         except Exception as e:
             return f"⚠️ Error: {str(e)}", None, []
+    else:
+        return "I'm a simple chatbot. For Wikipedia integration, please install the wikipedia package.", None, []
 
 # ---------------------------
 # LAYOUT
@@ -258,7 +282,7 @@ with col1:
         st.markdown('</div>', unsafe_allow_html=True)
 
     # Voice input
-    if st.button("🎤 Speak"):
+    if SPEECH_RECOGNITION_AVAILABLE and st.button("🎤 Speak"):
         spoken_text = recognize_voice()
         if spoken_text and "❌" not in spoken_text:
             st.session_state.messages.append({"role": "user", "content": spoken_text})
