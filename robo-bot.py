@@ -4,9 +4,6 @@ import requests
 from io import BytesIO
 from PIL import Image
 import random
-import pdfplumber
-with pdfplumber.open(uploaded_file) as pdf:
-    content = "\n".join([page.extract_text() for page in pdf.pages])
 import docx
 import speech_recognition as sr
 import tempfile
@@ -296,4 +293,5 @@ if user_input:
     st.session_state.messages.append(msg)
     st.session_state.suggestions = suggestions
     st.rerun()
+
 
