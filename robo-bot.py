@@ -4,8 +4,15 @@ import requests
 from io import BytesIO
 from PIL import Image
 import random
+import PyPDF2
+import docx
+import speech_recognition as sr
+import tempfile
+import os
 
-# Set page configuration
+# ---------------------------
+# PAGE CONFIG
+# ---------------------------
 st.set_page_config(
     page_title="Robo Chatbot",
     page_icon="🤖",
@@ -13,58 +20,64 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for styling
+# ---------------------------
+# CUSTOM CSS (Red, Black, Neutral Theme)
+# ---------------------------
 st.markdown("""
 <style>
-    /* General App Styling */
     body {
         font-family: "Segoe UI", Roboto, sans-serif;
+        background-color: #121212;
+        color: #f5f5f5;
     }
     .main-header {
         font-size: 3rem;
-        color: #0d6efd;
+        color: #ff4d4d;
         text-align: center;
         margin-bottom: 1rem;
         font-weight: bold;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
     }
     .chat-container {
-        background-color: #ffffff;
+        background-color: #1e1e1e;
         border-radius: 12px;
         padding: 20px;
         height: 600px;
         overflow-y: auto;
-        border: 1px solid #e0e0e0;
+        border: 1px solid #333;
         font-size: 1rem;
         line-height: 1.5;
     }
     .user-message {
-        background: linear-gradient(135deg, #e6f7ff, #d0ebff);
+        background: linear-gradient(135deg, #ffcccc, #ff4d4d);
         padding: 12px 16px;
         border-radius: 12px;
         margin: 12px 0;
         text-align: right;
         font-size: 1rem;
         word-wrap: break-word;
+        color: black;
+        font-weight: bold;
     }
     .bot-message {
-        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        background: linear-gradient(135deg, #2c2c2c, #444);
         padding: 12px 16px;
         border-radius: 12px;
         margin: 12px 0;
         text-align: left;
         font-size: 1rem;
         word-wrap: break-word;
+        color: #f5f5f5;
     }
     .wikipedia-image {
         max-width: 100%;
         border-radius: 10px;
         margin-top: 10px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
     .stButton button {
         width: 100%;
-        background-color: #4CAF50 !important;
+        background-color: #ff4d4d !important;
         color: white !important;
         border-radius: 8px !important;
         font-weight: bold;
@@ -73,37 +86,41 @@ st.markdown("""
         margin-top: 5px;
     }
     .stButton button:hover {
-        background-color: #45a049 !important;
+        background-color: #e60000 !important;
         transform: scale(1.02);
         transition: 0.2s;
     }
-    /* Scrollbar Styling */
     .chat-container::-webkit-scrollbar {
         width: 8px;
     }
     .chat-container::-webkit-scrollbar-thumb {
-        background: #bbb;
+        background: #ff4d4d;
         border-radius: 4px;
     }
     .chat-container::-webkit-scrollbar-thumb:hover {
-        background: #888;
+        background: #cc0000;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Title with custom styling
+# ---------------------------
+# HEADER
+# ---------------------------
 st.markdown('<h1 class="main-header">🤖 Robo Chatbot</h1>', unsafe_allow_html=True)
-st.markdown("### Your intelligent assistant with Wikipedia knowledge")
+st.markdown("### Your assistant with Wikipedia knowledge, voice, and file understanding")
 
-# Sidebar
+# ---------------------------
+# SIDEBAR
+# ---------------------------
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/4711/4711984.png", width=100)
     st.title("About Robo Chatbot")
     st.info("""
-    I'm your friendly AI assistant powered by:
-    - Streamlit for the interface
-    - Wikipedia API for knowledge
-    - Advanced NLP for conversations
+    I can:
+    - Answer questions using Wikipedia
+    - Read and analyze files
+    - Understand uploaded images
+    - Support voice input
     """)
     
     st.subheader("Settings")
@@ -119,43 +136,53 @@ with st.sidebar:
         if st.button(f"'{query}'"):
             st.session_state.user_input = query
 
-# Session state for conversation memory
+# ---------------------------
+# SESSION MEMORY
+# ---------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Function to get Wikipedia image
+# ---------------------------
+# HELPER FUNCTIONS
+# ---------------------------
 def get_wikipedia_image(page_title):
     try:
-        # Get page and check for images
         page = wikipedia.page(page_title, auto_suggest=False)
-        if page.images:
-            # Try to get a relevant image (often the first image is the most relevant)
-            image_url = page.images[0]
-            
-            # Filter out non-image files and logos
-            if any(ext in image_url for ext in ['.jpg', '.jpeg', '.png', '.gif', '.svg']):
-                # Avoid Wikipedia logos and icons
-                if not any(word in image_url for word in ['logo', 'icon', 'Wiki', 'svg']):
-                    response = requests.get(image_url)
+        for img_url in page.images[:5]:
+            if any(ext in img_url for ext in ['.jpg', '.jpeg', '.png']):
+                if not any(word in img_url for word in ['logo', 'icon', 'Wiki']):
+                    response = requests.get(img_url)
                     img = Image.open(BytesIO(response.content))
-                    return img, image_url
-            
-            # If first image didn't work, try others
-            for img_url in page.images[1:5]:
-                if any(ext in img_url for ext in ['.jpg', '.jpeg', '.png', '.gif']):
-                    if not any(word in img_url for word in ['logo', 'icon', 'Wiki']):
-                        response = requests.get(img_url)
-                        img = Image.open(BytesIO(response.content))
-                        return img, img_url
+                    return img, img_url
     except:
         pass
     return None, None
 
-# Define your bot's logic
-def chatbot_response(user_input):
+def read_file(uploaded_file):
+    if uploaded_file.type == "application/pdf":
+        reader = PyPDF2.PdfReader(uploaded_file)
+        return "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
+    elif uploaded_file.type == "text/plain":
+        return uploaded_file.read().decode("utf-8")
+    elif uploaded_file.type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
+        doc = docx.Document(uploaded_file)
+        return "\n".join([para.text for para in doc.paragraphs])
+    return "❌ Unsupported file type."
+
+def recognize_voice():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.info("🎤 Listening... Speak now!")
+        audio = recognizer.listen(source)
+        try:
+            text = recognizer.recognize_google(audio)
+            return text
+        except:
+            return "❌ Sorry, I couldn't understand the audio."
+
+def chatbot_response(user_input, file_content=None):
     user_input_lower = user_input.lower()
     
-    # Basic rule-based responses
     greeting_responses = [
         "Hello! I'm Robo Chatbot. How can I assist you today?",
         "Hi there! What would you like to know?",
@@ -163,42 +190,39 @@ def chatbot_response(user_input):
     ]
     
     if any(word in user_input_lower for word in ["hello", "hi", "hey", "greetings"]):
-        return random.choice(greeting_responses), None
+        return random.choice(greeting_responses), None, ["What is AI?", "Tell me about robots"]
     elif "your name" in user_input_lower:
-        return "I'm Robo Chatbot, your friendly AI assistant!", None
+        return "I'm Robo Chatbot, your friendly AI assistant!", None, ["Who created you?", "What can you do?"]
     elif any(word in user_input_lower for word in ["bye", "goodbye", "see you"]):
-        return "Goodbye! Feel free to come back if you have more questions.", None
+        return "Goodbye! Feel free to come back if you have more questions.", None, []
     elif "thank" in user_input_lower:
-        return "You're welcome! Is there anything else you'd like to know?", None
+        return "You're welcome! Is there anything else you'd like to know?", None, ["Tell me a fact", "What is deep learning?"]
+    elif file_content:
+        return f"📄 I analyzed your file and here’s what I found:\n\n{file_content[:800]}...", None, ["Summarize this file", "What’s the main topic?"]
     else:
-        # Try Wikipedia if no rule-based response
         try:
-            # Get Wikipedia summary with 5 sentences
             summary = wikipedia.summary(user_input, sentences=5)
-            
-            # Try to get an image
             img, img_url = get_wikipedia_image(user_input)
-            
-            return f"📖 According to Wikipedia:\n\n{summary}", img
+            suggestions = [f"History of {user_input}", f"Applications of {user_input}", f"Future of {user_input}"]
+            return f"📖 According to Wikipedia:\n\n{summary}", img, suggestions
         except wikipedia.exceptions.DisambiguationError as e:
             options = e.options[:5]
-            return f"⚠️ That query is too broad. Did you mean: {', '.join(options)}?", None
+            return f"⚠️ Too broad. Did you mean: {', '.join(options)}?", None, []
         except wikipedia.exceptions.PageError:
-            return "❌ Sorry, I couldn't find anything on Wikipedia for that. Could you try a different query?", None
+            return "❌ Sorry, I couldn't find anything on Wikipedia for that.", None, []
         except Exception as e:
-            return f"⚠️ An error occurred: {str(e)}", None
+            return f"⚠️ Error: {str(e)}", None, []
 
-# Create two columns for layout
+# ---------------------------
+# LAYOUT
+# ---------------------------
 col1, col2 = st.columns([2, 1])
 
 with col1:
     st.markdown("### 💬 Conversation")
-    
-    # Chat container
     chat_container = st.container()
     with chat_container:
         st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-        
         for msg in st.session_state.messages:
             if msg["role"] == "user":
                 st.markdown(f'<div class="user-message"><b>You:</b> {msg["content"]}</div>', unsafe_allow_html=True)
@@ -206,44 +230,67 @@ with col1:
                 st.markdown(f'<div class="bot-message"><b>Robo:</b> {msg["content"]}</div>', unsafe_allow_html=True)
                 if msg.get("image"):
                     st.image(msg["image"], caption="Related image", use_column_width=True)
-        
         st.markdown('</div>', unsafe_allow_html=True)
+
+    # Voice input
+    if st.button("🎤 Speak"):
+        spoken_text = recognize_voice()
+        if spoken_text and "❌" not in spoken_text:
+            st.session_state.messages.append({"role": "user", "content": spoken_text})
+            response, image, suggestions = chatbot_response(spoken_text)
+            bot_msg = {"role": "bot", "content": response}
+            if image:
+                bot_msg["image"] = image
+            st.session_state.messages.append(bot_msg)
+            st.session_state.suggestions = suggestions
+            st.rerun()
 
     # User input
     user_input = st.chat_input("Type your message here...")
 
 with col2:
-    st.markdown("### ℹ️ Information Panel")
+    st.markdown("### 📂 Upload Files or Images")
+    uploaded_file = st.file_uploader("Upload a file (PDF, TXT, DOCX)", type=["pdf", "txt", "docx"])
+    uploaded_image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
     
-    # Display fun facts or tips
-    tips = [
-        "💡 Tip: Ask about historical events, scientific concepts, or famous people!",
-        "🔍 Did you know? Wikipedia has over 6 million articles in English.",
-        "🌐 Robo Chatbot can fetch information from Wikipedia in seconds.",
-        "🤖 I'm constantly learning! The more you ask, the smarter I become."
-    ]
-    
-    st.info(random.choice(tips))
-    
-    # Display some statistics
-    if st.session_state.messages:
-        user_msgs = sum(1 for msg in st.session_state.messages if msg["role"] == "user")
-        bot_msgs = sum(1 for msg in st.session_state.messages if msg["role"] == "bot")
-        st.metric("Conversation Length", f"{len(st.session_state.messages)} messages")
-        st.metric("Your Messages", user_msgs)
-        st.metric("My Responses", bot_msgs)
+    if uploaded_file:
+        content = read_file(uploaded_file)
+        st.session_state.messages.append({"role": "user", "content": f"Uploaded {uploaded_file.name}"})
+        response, image, suggestions = chatbot_response("file", file_content=content)
+        st.session_state.messages.append({"role": "bot", "content": response})
+        st.session_state.suggestions = suggestions
+        st.rerun()
 
-# Process user input
+    if uploaded_image:
+        img = Image.open(uploaded_image)
+        st.image(img, caption="Uploaded Image", use_column_width=True)
+        st.session_state.messages.append({"role": "user", "content": "I uploaded an image"})
+        st.session_state.messages.append({"role": "bot", "content": "📷 Nice image! I can't fully analyze images yet but it's uploaded successfully."})
+        st.rerun()
+    
+    # Tips + suggestions
+    if "suggestions" in st.session_state and st.session_state.suggestions:
+        st.subheader("🤔 Suggested Questions")
+        for s in st.session_state.suggestions:
+            if st.button(s):
+                st.session_state.messages.append({"role": "user", "content": s})
+                response, image, suggestions = chatbot_response(s)
+                msg = {"role": "bot", "content": response}
+                if image:
+                    msg["image"] = image
+                st.session_state.messages.append(msg)
+                st.session_state.suggestions = suggestions
+                st.rerun()
+
+# ---------------------------
+# PROCESS USER INPUT
+# ---------------------------
 if user_input:
-    # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": user_input})
-    
-    # Get bot response
-    response, image = chatbot_response(user_input)
-    message_data = {"role": "bot", "content": response}
+    response, image, suggestions = chatbot_response(user_input)
+    msg = {"role": "bot", "content": response}
     if image:
-        message_data["image"] = image
-    st.session_state.messages.append(message_data)
-    
-    # Rerun to update the conversation
+        msg["image"] = image
+    st.session_state.messages.append(msg)
+    st.session_state.suggestions = suggestions
     st.rerun()
