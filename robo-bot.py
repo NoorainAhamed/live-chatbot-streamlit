@@ -4,10 +4,18 @@ import requests
 from io import BytesIO
 from PIL import Image
 import random
-import docx
+import PyPDF2
 import speech_recognition as sr
 import tempfile
 import os
+
+# Try to import docx with error handling
+try:
+    import docx
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+    st.warning("Note: DOCX support is not available. Please install python-docx for full functionality.")
 
 # ---------------------------
 # PAGE CONFIG
@@ -133,7 +141,10 @@ with st.sidebar:
                       "Explain quantum computing"]
     for query in example_queries:
         if st.button(f"'{query}'"):
-            st.session_state.user_input = query
+            if "user_input" not in st.session_state:
+                st.session_state.user_input = query
+            else:
+                st.session_state.user_input = query
 
 # ---------------------------
 # SESSION MEMORY
@@ -159,25 +170,40 @@ def get_wikipedia_image(page_title):
 
 def read_file(uploaded_file):
     if uploaded_file.type == "application/pdf":
-        reader = PyPDF2.PdfReader(uploaded_file)
-        return "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
+        try:
+            reader = PyPDF2.PdfReader(uploaded_file)
+            return "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
+        except Exception as e:
+            return f"❌ Error reading PDF: {str(e)}"
     elif uploaded_file.type == "text/plain":
-        return uploaded_file.read().decode("utf-8")
+        try:
+            return uploaded_file.read().decode("utf-8")
+        except Exception as e:
+            return f"❌ Error reading text file: {str(e)}"
     elif uploaded_file.type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
-        doc = docx.Document(uploaded_file)
-        return "\n".join([para.text for para in doc.paragraphs])
+        if DOCX_AVAILABLE:
+            try:
+                doc = docx.Document(uploaded_file)
+                return "\n".join([para.text for para in doc.paragraphs])
+            except Exception as e:
+                return f"❌ Error reading DOCX file: {str(e)}"
+        else:
+            return "❌ DOCX support is not available. Please install python-docx package."
     return "❌ Unsupported file type."
 
 def recognize_voice():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("🎤 Listening... Speak now!")
-        audio = recognizer.listen(source)
-        try:
-            text = recognizer.recognize_google(audio)
-            return text
-        except:
-            return "❌ Sorry, I couldn't understand the audio."
+    try:
+        recognizer = sr.Recognizer()
+        with sr.Microphone() as source:
+            st.info("🎤 Listening... Speak now!")
+            audio = recognizer.listen(source)
+            try:
+                text = recognizer.recognize_google(audio)
+                return text
+            except:
+                return "❌ Sorry, I couldn't understand the audio."
+    except Exception as e:
+        return f"❌ Microphone error: {str(e)}"
 
 def chatbot_response(user_input, file_content=None):
     user_input_lower = user_input.lower()
@@ -197,7 +223,7 @@ def chatbot_response(user_input, file_content=None):
     elif "thank" in user_input_lower:
         return "You're welcome! Is there anything else you'd like to know?", None, ["Tell me a fact", "What is deep learning?"]
     elif file_content:
-        return f"📄 I analyzed your file and here’s what I found:\n\n{file_content[:800]}...", None, ["Summarize this file", "What’s the main topic?"]
+        return f"📄 I analyzed your file and here's what I found:\n\n{file_content[:800]}...", None, ["Summarize this file", "What's the main topic?"]
     else:
         try:
             summary = wikipedia.summary(user_input, sentences=5)
@@ -293,5 +319,3 @@ if user_input:
     st.session_state.messages.append(msg)
     st.session_state.suggestions = suggestions
     st.rerun()
-
-
