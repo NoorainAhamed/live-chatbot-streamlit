@@ -4,10 +4,6 @@ import requests
 from io import BytesIO
 from PIL import Image
 import random
-import time
-import base64
-from datetime import datetime
-import os
 
 # Set page configuration
 st.set_page_config(
@@ -17,195 +13,87 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Try to import speech recognition with fallback
-speech_recognition_available = False
-pyttsx3_available = False
-
-try:
-    import speech_recognition as sr
-    speech_recognition_available = True
-except ImportError:
-    st.sidebar.warning("Speech recognition features disabled (install speechrecognition)")
-
-try:
-    import pyttsx3
-    pyttsx3_available = True
-except ImportError:
-    st.sidebar.warning("Text-to-speech disabled (install pyttsx3)")
-
-# Custom CSS for styling with the provided color scheme
-st.markdown(f"""
+# Custom CSS for styling
+st.markdown("""
 <style>
-    /* Global styles */
-    .stApp {{
-        background-color: #FAFAF9;
-    }}
-    .main-header {{
+    /* General App Styling */
+    body {
+        font-family: "Segoe UI", Roboto, sans-serif;
+    }
+    .main-header {
         font-size: 3rem;
-        color: #2E7D32;
+        color: #0d6efd;
         text-align: center;
         margin-bottom: 1rem;
-        font-weight: 700;
-    }}
-    .sub-header {{
-        color: #2E7D32;
-        font-weight: 600;
-    }}
-    /* Chat container */
-    .chat-container {{
-        background-color: #FFFFFF;
-        border-radius: 16px;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    .chat-container {
+        background-color: #ffffff;
+        border-radius: 12px;
         padding: 20px;
         height: 600px;
         overflow-y: auto;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        border: 1px solid #E8E8E8;
-    }}
-    /* Message styles */
-    .user-message {{
-        background-color: #A5D6A7;
-        color: #2C2C2C;
+        border: 1px solid #e0e0e0;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+    .user-message {
+        background: linear-gradient(135deg, #e6f7ff, #d0ebff);
         padding: 12px 16px;
-        border-radius: 18px 18px 0 18px;
-        margin: 10px 0;
-        max-width: 80%;
-        margin-left: auto;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }}
-    .bot-message {{
-        background-color: #F0F0F0;
-        color: #2C2C2C;
-        padding: 12px 16px;
-        border-radius: 18px 18px 18px 0;
-        margin: 10px 0;
-        max-width: 80%;
-        margin-right: auto;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }}
-    .message-time {{
-        font-size: 0.7rem;
-        color: #6B705C;
+        border-radius: 12px;
+        margin: 12px 0;
         text-align: right;
+        font-size: 1rem;
+        word-wrap: break-word;
+    }
+    .bot-message {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        padding: 12px 16px;
+        border-radius: 12px;
+        margin: 12px 0;
+        text-align: left;
+        font-size: 1rem;
+        word-wrap: break-word;
+    }
+    .wikipedia-image {
+        max-width: 100%;
+        border-radius: 10px;
+        margin-top: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .stButton button {
+        width: 100%;
+        background-color: #4CAF50 !important;
+        color: white !important;
+        border-radius: 8px !important;
+        font-weight: bold;
+        font-size: 1rem;
+        padding: 8px;
         margin-top: 5px;
-    }}
-    /* Button styles */
-    .stButton button {{
-        background-color: #2E7D32;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 16px;
-        transition: all 0.3s;
-    }}
-    .stButton button:hover {{
-        background-color: #1B5E20;
-        color: white;
-    }}
-    /* Suggestion chips */
-    .suggestion-chip {{
-        display: inline-block;
-        background-color: #E8F5E9;
-        color: #2E7D32;
-        padding: 6px 12px;
-        border-radius: 16px;
-        margin: 5px;
-        cursor: pointer;
-        transition: all 0.2s;
-        border: 1px solid #A5D6A7;
-    }}
-    .suggestion-chip:hover {{
-        background-color: #A5D6A7;
-        color: #2C2C2C;
-    }}
-    /* File upload area */
-    .uploaded-file {{
-        background-color: #E8F5E9;
-        padding: 10px;
-        border-radius: 8px;
-        margin: 10px 0;
-        border-left: 4px solid #2E7D32;
-    }}
-    /* Voice recording button */
-    .voice-recorder {{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin: 15px 0;
-    }}
-    /* Sidebar */
-    .sidebar .sidebar-content {{
-        background-color: #FFFFFF;
-    }}
-    /* Metrics */
-    .stMetric {{
-        background-color: #FFFFFF;
-        padding: 10px;
-        border-radius: 8px;
-        border-left: 4px solid #2E7D32;
-    }}
-    /* Warning box */
-    .warning-box {{
-        background-color: #FFF3CD;
-        color: #856404;
-        padding: 12px;
-        border-radius: 8px;
-        border-left: 4px solid #FFC107;
-        margin: 10px 0;
-    }}
+    }
+    .stButton button:hover {
+        background-color: #45a049 !important;
+        transform: scale(1.02);
+        transition: 0.2s;
+    }
+    /* Scrollbar Styling */
+    .chat-container::-webkit-scrollbar {
+        width: 8px;
+    }
+    .chat-container::-webkit-scrollbar-thumb {
+        background: #bbb;
+        border-radius: 4px;
+    }
+    .chat-container::-webkit-scrollbar-thumb:hover {
+        background: #888;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # Title with custom styling
 st.markdown('<h1 class="main-header">🤖 Robo Chatbot</h1>', unsafe_allow_html=True)
 st.markdown("### Your intelligent assistant with Wikipedia knowledge")
-
-# Initialize text-to-speech engine
-def init_tts():
-    if not pyttsx3_available:
-        return None
-    try:
-        engine = pyttsx3.init()
-        voices = engine.getProperty('voices')
-        if voices and len(voices) > 1:
-            engine.setProperty('voice', voices[1].id)  # Change index for different voices
-        engine.setProperty('rate', 150)  # Speed percent
-        return engine
-    except:
-        return None
-
-tts_engine = init_tts()
-
-# Function to convert text to speech
-def text_to_speech(text):
-    if tts_engine and pyttsx3_available:
-        try:
-            tts_engine.say(text)
-            tts_engine.runAndWait()
-        except:
-            pass
-
-# Function to handle voice input
-def speech_to_text():
-    if not speech_recognition_available:
-        return "Speech recognition not available"
-    
-    try:
-        recognizer = sr.Recognizer()
-        with sr.Microphone() as source:
-            st.info("Listening... Speak now")
-            recognizer.adjust_for_ambient_noise(source)
-            try:
-                audio = recognizer.listen(source, timeout=5, phrase_time_limit=5)
-                text = recognizer.recognize_google(audio)
-                return text
-            except sr.UnknownValueError:
-                return "Could not understand audio"
-            except sr.RequestError:
-                return "API unavailable"
-            except sr.WaitTimeoutError:
-                return "No speech detected"
-    except Exception as e:
-        return f"Error: {str(e)}"
 
 # Sidebar
 with st.sidebar:
@@ -215,76 +103,25 @@ with st.sidebar:
     I'm your friendly AI assistant powered by:
     - Streamlit for the interface
     - Wikipedia API for knowledge
-    - Voice interaction capabilities
-    - File upload features
+    - Advanced NLP for conversations
     """)
     
-    # Show warnings for missing dependencies
-    if not speech_recognition_available:
-        st.markdown('<div class="warning-box">⚠️ Install speechrecognition for voice features:<br><code>pip install SpeechRecognition</code></div>', unsafe_allow_html=True)
-    if not pyttsx3_available:
-        st.markdown('<div class="warning-box">⚠️ Install pyttsx3 for text-to-speech:<br><code>pip install pyttsx3</code></div>', unsafe_allow_html=True)
-    
-    st.markdown("---")
     st.subheader("Settings")
-    
-    # Voice settings (only show if available)
-    if pyttsx3_available:
-        voice_enabled = st.checkbox("Enable Text-to-Speech", value=False)
-    else:
-        voice_enabled = False
-    
-    # Clear conversation button
-    if st.button("🗑️ Clear Conversation"):
+    if st.button("Clear Conversation"):
         st.session_state.messages = []
         st.success("Conversation cleared!")
     
-    st.markdown("---")
-    st.subheader("File Upload")
-    uploaded_file = st.file_uploader("Upload a file or image", type=['txt', 'pdf', 'png', 'jpg', 'jpeg'])
-    
-    if uploaded_file is not None:
-        file_details = {
-            "FileName": uploaded_file.name,
-            "FileType": uploaded_file.type,
-            "FileSize": uploaded_file.size
-        }
-        st.write(file_details)
-        
-        # Read and display file content based on type
-        if uploaded_file.type == "text/plain":
-            text_content = str(uploaded_file.read(), "utf-8")
-            st.text_area("File Content", text_content, height=200)
-        elif uploaded_file.type.startswith("image"):
-            st.image(uploaded_file, caption=uploaded_file.name, use_column_width=True)
-    
-    st.markdown("---")
     st.subheader("Example Queries")
-    example_queries = [
-        "Tell me about artificial intelligence", 
-        "What is machine learning?", 
-        "Explain quantum computing",
-        "Who is Albert Einstein?",
-        "What is the history of the internet?"
-    ]
-    
+    example_queries = ["Tell me about artificial intelligence", 
+                      "What is machine learning?", 
+                      "Explain quantum computing"]
     for query in example_queries:
-        if st.button(f"🔍 {query}", key=f"example_{query}"):
+        if st.button(f"'{query}'"):
             st.session_state.user_input = query
-            st.rerun()
 
 # Session state for conversation memory
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-# Suggested questions
-suggested_questions = [
-    "What can you tell me about climate change?",
-    "Explain the theory of relativity",
-    "Who was Marie Curie?",
-    "What are the latest advancements in AI?",
-    "Tell me about the solar system"
-]
 
 # Function to get Wikipedia image
 def get_wikipedia_image(page_title):
@@ -357,36 +194,6 @@ col1, col2 = st.columns([2, 1])
 with col1:
     st.markdown("### 💬 Conversation")
     
-    # Voice input section (only show if available)
-    if speech_recognition_available or pyttsx3_available:
-        st.markdown("**Voice Input**")
-        voice_col1, voice_col2 = st.columns(2)
-        
-        with voice_col1:
-            if speech_recognition_available:
-                if st.button("🎤 Start Recording"):
-                    voice_text = speech_to_text()
-                    if voice_text and voice_text not in ["Could not understand audio", "API unavailable", "No speech detected", "Speech recognition not available"]:
-                        st.session_state.user_input = voice_text
-                        st.rerun()
-                    else:
-                        st.warning("Could not process voice input. Please try again.")
-            else:
-                st.info("Voice input not available")
-        
-        with voice_col2:
-            if pyttsx3_available and voice_enabled and st.session_state.messages:
-                if st.button("🔊 Read Last Response"):
-                    last_bot_message = None
-                    for msg in reversed(st.session_state.messages):
-                        if msg["role"] == "bot":
-                            last_bot_message = msg["content"]
-                            break
-                    if last_bot_message:
-                        text_to_speech(last_bot_message)
-            else:
-                st.info("Text-to-speech not available")
-    
     # Chat container
     chat_container = st.container()
     with chat_container:
@@ -395,28 +202,15 @@ with col1:
         for msg in st.session_state.messages:
             if msg["role"] == "user":
                 st.markdown(f'<div class="user-message"><b>You:</b> {msg["content"]}</div>', unsafe_allow_html=True)
-                if "timestamp" in msg:
-                    st.markdown(f'<div class="message-time">{msg["timestamp"]}</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f'<div class="bot-message"><b>Robo:</b> {msg["content"]}</div>', unsafe_allow_html=True)
-                if "timestamp" in msg:
-                    st.markdown(f'<div class="message-time">{msg["timestamp"]}</div>', unsafe_allow_html=True)
                 if msg.get("image"):
                     st.image(msg["image"], caption="Related image", use_column_width=True)
         
         st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Suggested questions
-    st.markdown("**💡 Suggested questions:**")
-    suggestion_cols = st.columns(3)
-    for i, question in enumerate(suggested_questions):
-        with suggestion_cols[i % 3]:
-            if st.button(question, key=f"suggest_{i}"):
-                st.session_state.user_input = question
-                st.rerun()
 
     # User input
-    user_input = st.text_input("Type your message here...", key="user_input", label_visibility="collapsed", placeholder="Type your message here...")
+    user_input = st.chat_input("Type your message here...")
 
 with col2:
     st.markdown("### ℹ️ Information Panel")
@@ -426,8 +220,7 @@ with col2:
         "💡 Tip: Ask about historical events, scientific concepts, or famous people!",
         "🔍 Did you know? Wikipedia has over 6 million articles in English.",
         "🌐 Robo Chatbot can fetch information from Wikipedia in seconds.",
-        "🤖 I'm constantly learning! The more you ask, the smarter I become.",
-        "🎤 Use the voice feature for hands-free interaction!"
+        "🤖 I'm constantly learning! The more you ask, the smarter I become."
     ]
     
     st.info(random.choice(tips))
@@ -436,48 +229,21 @@ with col2:
     if st.session_state.messages:
         user_msgs = sum(1 for msg in st.session_state.messages if msg["role"] == "user")
         bot_msgs = sum(1 for msg in st.session_state.messages if msg["role"] == "bot")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Total Messages", len(st.session_state.messages))
-            st.metric("Your Messages", user_msgs)
-        with col2:
-            st.metric("My Responses", bot_msgs)
-            st.metric("Conversation Duration", f"{len(st.session_state.messages)*0.5} min")
-    else:
-        st.info("Start a conversation to see statistics here.")
-    
-    # File upload status
-    if uploaded_file is not None:
-        st.markdown("---")
-        st.markdown("**📁 Uploaded File**")
-        st.markdown(f'<div class="uploaded-file">'
-                   f'<strong>{uploaded_file.name}</strong><br>'
-                   f'Type: {uploaded_file.type}<br>'
-                   f'Size: {uploaded_file.size} bytes'
-                   f'</div>', unsafe_allow_html=True)
+        st.metric("Conversation Length", f"{len(st.session_state.messages)} messages")
+        st.metric("Your Messages", user_msgs)
+        st.metric("My Responses", bot_msgs)
 
 # Process user input
-if user_input and user_input.strip():
-    # Add user message to chat history with timestamp
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    st.session_state.messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
+if user_input:
+    # Add user message to chat history
+    st.session_state.messages.append({"role": "user", "content": user_input})
     
     # Get bot response
-    with st.spinner("Robo is thinking..."):
-        time.sleep(0.5)  # Simulate thinking time
-        response, image = chatbot_response(user_input)
-    
-    # Add bot response to chat history with timestamp
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    message_data = {"role": "bot", "content": response, "timestamp": timestamp}
+    response, image = chatbot_response(user_input)
+    message_data = {"role": "bot", "content": response}
     if image:
         message_data["image"] = image
     st.session_state.messages.append(message_data)
-    
-    # Read response aloud if enabled
-    if voice_enabled and pyttsx3_available:
-        text_to_speech(response)
     
     # Rerun to update the conversation
     st.rerun()
