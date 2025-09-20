@@ -6,7 +6,6 @@ from PIL import Image
 import random
 import time
 from datetime import datetime
-import base64
 
 # Set page configuration
 st.set_page_config(
@@ -17,7 +16,7 @@ st.set_page_config(
 )
 
 # Custom CSS for styling with the provided color scheme
-st.markdown(f"""
+st.markdown("""
 <style>
     /* Global styles */
     .stApp {
@@ -74,7 +73,7 @@ st.markdown(f"""
         max-width: 75%;
         margin-left: auto;
         font-size: 1rem;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 极速赛车开奖直播历史记录+极速赛车开奖结果|澳洲10开奖官网 0.3);
         word-wrap: break-word;
         user-select: text;
         transition: background 0.3s ease;
@@ -92,7 +91,7 @@ st.markdown(f"""
         max-width: 75%;
         margin-right: auto;
         font-size: 1rem;
-        box-shadow: 0 4px 12px rgba(156, 163, 175, 0.3);
+        box-shadow: 0 4极速赛车开奖直播历史记录+极速赛车开奖结果|澳洲10开奖官网 px 12px rgba(156, 163, 175, 0.3);
         word-wrap: break-word;
         user-select: text;
         white-space: pre-line;
@@ -143,7 +142,7 @@ st.markdown(f"""
         display: inline-block;
         background-color: #EFF6FF;
         color: #2563EB;
-        padding: 10px 22px;
+        padding: 10极速赛车开奖直播历史记录+极速赛车开奖结果|澳洲10开奖官网 px 22px;
         border-radius: 30px;
         margin: 6px 8px 6px 0;
         cursor: pointer;
@@ -163,7 +162,7 @@ st.markdown(f"""
     }
     /* File upload area */
     .uploaded-file {
-        background-color: #F0FDF4;
+        background-color: #F0极速赛车开奖直播历史记录+极速赛车开奖结果|澳洲10开奖官网 FDF4;
         padding: 16px 20px;
         border-radius: 12px;
         margin: 14px 0;
@@ -213,7 +212,7 @@ st.markdown(f"""
         border-left: 6px solid #2563EB;
         box-shadow: 0 6px 18px rgba(37, 99, 235, 0.15);
         font-weight: 700;
-        color: #1E40AF;
+        color: #1E40极速赛车开奖直播历史记录+极速赛车开奖结果|澳洲10开奖官网 AF;
         user-select: none;
     }
     /* Tabs */
@@ -284,7 +283,7 @@ st.markdown(f"""
     .stChatInput textarea:focus {
         border-color: #3B82F6 !important;
         outline: none !important;
-        box-shadow: 0 0 8px rgba(59, 130, 246, 0.5) !important;
+        box-shadow: 0极速赛车开奖直播极速赛车开奖直播历史记录+极速赛车开奖结果|澳洲10开奖官网 历史记录+极速赛车开奖结果|澳洲10开奖官网 0 0 8px rgba(59, 130, 246, 0.5) !important;
     }
     /* Response done indicator */
     .response-done {
@@ -301,14 +300,12 @@ st.markdown(f"""
         vertical-align: middle;
         animation: pulse 2s infinite;
     }
-
-@keyframes pulse {{
-    0% {{ box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }}
-    70% {{ box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }}
-    100% {{ box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }}
-}}
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
 </style>
-
 """, unsafe_allow_html=True)
 
 # Title with custom styling
@@ -317,269 +314,3 @@ st.markdown("### Your intelligent assistant with Wikipedia knowledge")
 
 # Sidebar
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/4711/4711984.png", width=100)
-    st.title("About Robo Chatbot")
-    st.info("""
-    I'm your friendly AI assistant powered by:
-    - Streamlit for the interface
-    - Wikipedia API for knowledge
-    - Voice interaction capabilities
-    - File upload features
-    """)
-    
-    st.markdown("---")
-    st.subheader("Settings")
-    
-    # Voice settings
-    st.markdown("**Voice Settings**")
-    voice_enabled = st.checkbox("Enable Text-to-Speech", value=False)
-    
-    # Clear conversation button
-    if st.button("🗑️ Clear Conversation"):
-        st.session_state.messages = []
-        st.success("Conversation cleared!")
-    
-    st.markdown("---")
-    st.subheader("File Upload")
-    uploaded_file = st.file_uploader("Upload a file or image", type=['txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx'])
-    
-    if uploaded_file is not None:
-        file_details = {
-            "FileName": uploaded_file.name,
-            "FileType": uploaded_file.type,
-            "FileSize": uploaded_file.size
-        }
-        st.write(file_details)
-        
-        # Read and display file content based on type
-        if uploaded_file.type == "text/plain":
-            text_content = str(uploaded_file.read(), "utf-8")
-            st.text_area("File Content", text_content, height=200)
-        elif uploaded_file.type.startswith("image"):
-            st.image(uploaded_file, caption=uploaded_file.name, use_column_width=True)
-    
-    st.markdown("---")
-    st.subheader("Example Queries")
-    example_queries = [
-        "Tell me about artificial intelligence", 
-        "What is machine learning?", 
-        "Explain quantum computing",
-        "Who is Albert Einstein?",
-        "What is the history of the internet?"
-    ]
-    
-    for query in example_queries:
-        if st.button(f"🔍 {query}", key=f"example_{query}"):
-            st.session_state.user_input = query
-            st.rerun()
-
-# Session state for conversation memory
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Suggested questions
-suggested_questions = [
-    "What can you tell me about climate change?",
-    "Explain the theory of relativity",
-    "Who was Marie Curie?",
-    "What are the latest advancements in AI?",
-    "Tell me about the solar system"
-]
-
-# Function to get Wikipedia image
-def get_wikipedia_image(page_title):
-    try:
-        # Get page and check for images
-        page = wikipedia.page(page_title, auto_suggest=False)
-        if page.images:
-            # Try to get a relevant image (often the first image is the most relevant)
-            image_url = page.images[0]
-            
-            # Filter out non-image files and logos
-            if any(ext in image_url for ext in ['.jpg', '.jpeg', '.png', '.gif', '.svg']):
-                # Avoid Wikipedia logos and icons
-                if not any(word in image_url for word in ['logo', 'icon', 'Wiki', 'svg']):
-                    response = requests.get(image_url)
-                    img = Image.open(BytesIO(response.content))
-                    return img, image_url
-            
-            # If first image didn't work, try others
-            for img_url in page.images[1:5]:
-                if any(ext in img_url for ext in ['.jpg', '.jpeg', '.png', '.gif']):
-                    if not any(word in img_url for word in ['logo', 'icon', 'Wiki']):
-                        response = requests.get(img_url)
-                        img = Image.open(BytesIO(response.content))
-                        return img, img_url
-    except:
-        pass
-    return None, None
-
-# Define your bot's logic
-def chatbot_response(user_input):
-    user_input_lower = user_input.lower()
-    
-    # Basic rule-based responses
-    greeting_responses = [
-        "Hello! I'm Robo Chatbot. How can I assist you today?",
-        "Hi there! What would you like to know?",
-        "Greetings! I'm here to help with your questions."
-    ]
-    
-    if any(word in user_input_lower for word in ["hello", "hi", "hey", "greetings"]):
-        return random.choice(greeting_responses), None
-    elif "your name" in user_input_lower:
-        return "I'm Robo Chatbot, your friendly AI assistant!", None
-    elif any(word in user_input_lower for word in ["bye", "goodbye", "see you"]):
-        return "Goodbye! Feel free to come back if you have more questions.", None
-    elif "thank" in user_input_lower:
-        return "You're welcome! Is there anything else you'd like to know?", None
-    else:
-        # Try Wikipedia if no rule-based response
-        try:
-            # Get Wikipedia summary with 5 sentences
-            summary = wikipedia.summary(user_input, sentences=5)
-            
-            # Try to get an image
-            img, img_url = get_wikipedia_image(user_input)
-            
-            return f"📖 According to Wikipedia:\n\n{summary}", img
-        except wikipedia.exceptions.DisambiguationError as e:
-            options = e.options[:5]
-            return f"⚠️ That query is too broad. Did you mean: {', '.join(options)}?", None
-        except wikipedia.exceptions.PageError:
-            return "❌ Sorry, I couldn't find anything on Wikipedia for that. Could you try a different query?", None
-        except Exception as e:
-            return f"⚠️ An error occurred: {str(e)}", None
-
-# Create two columns for layout
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    st.markdown("### 💬 Conversation")
-    
-    # Voice input section
-    st.markdown("**Voice Input**")
-    voice_col1, voice_col2 = st.columns(2)
-    
-    with voice_col1:
-        if st.button("🎤 Start Recording", use_container_width=True):
-            st.info("Voice recording would be implemented here with proper libraries")
-            # This would be replaced with actual speech-to-text implementation
-            st.session_state.user_input = "Example voice input"
-            st.rerun()
-    
-    with voice_col2:
-        if st.button("🔊 Read Last Response", use_container_width=True) and voice_enabled and st.session_state.messages:
-            st.info("Text-to-speech would read the last response")
-            # This would be replaced with actual text-to-speech implementation
-    
-    # Chat container
-    chat_container = st.container()
-    with chat_container:
-        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-        
-        for msg in st.session_state.messages:
-            if msg["role"] == "user":
-                st.markdown(f'<div class="user-message"><b>You:</b> {msg["content"]}</div>', unsafe_allow_html=True)
-                if "timestamp" in msg:
-                    st.markdown(f'<div class="message-time">{msg["timestamp"]}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div class="bot-message"><b>Robo:</b> {msg["content"]}</div>', unsafe_allow_html=True)
-                if "timestamp" in msg:
-                    st.markdown(f'<div class="message-time">{msg["timestamp"]}</div>', unsafe_allow_html=True)
-                if msg.get("image"):
-                    st.image(msg["image"], caption="Related image", use_column_width=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Suggested questions
-    st.markdown("**💡 Suggested questions:**")
-    cols = st.columns(2)
-    for i, question in enumerate(suggested_questions):
-        with cols[i % 2]:
-            if st.button(question, key=f"suggest_{i}"):
-                st.session_state.user_input = question
-                st.rerun()
-
-    # User input
-    user_input = st.chat_input("Type your message here...")
-
-with col2:
-    # Use tabs for different information sections
-    tab1, tab2, tab3 = st.tabs(["📊 Stats", "📁 Files", "ℹ️ Info"])
-    
-    with tab1:
-        st.markdown("### Conversation Statistics")
-        
-        # Display some statistics
-        if st.session_state.messages:
-            user_msgs = sum(1 for msg in st.session_state.messages if msg["role"] == "user")
-            bot_msgs = sum(1 for msg in st.session_state.messages if msg["role"] == "bot")
-            
-            st.metric("Total Messages", len(st.session_state.messages))
-            st.metric("Your Messages", user_msgs)
-            st.metric("My Responses", bot_msgs)
-            st.metric("Conversation Duration", f"{len(st.session_state.messages)*0.5} min")
-        else:
-            st.info("Start a conversation to see statistics here.")
-    
-    with tab2:
-        st.markdown("### File Management")
-        
-        if uploaded_file is not None:
-            st.markdown("**📁 Uploaded File**")
-            st.markdown(f'<div class="uploaded-file">'
-                       f'<strong>{uploaded_file.name}</strong><br>'
-                       f'Type: {uploaded_file.type}<br>'
-                       f'Size: {uploaded_file.size} bytes'
-                       f'</div>', unsafe_allow_html=True)
-        else:
-            st.info("No files uploaded yet. Use the sidebar to upload files.")
-    
-    with tab3:
-        st.markdown("### Tips & Information")
-        
-        # Display fun facts or tips
-        tips = [
-            "💡 Tip: Ask about historical events, scientific concepts, or famous people!",
-            "🔍 Did you know? Wikipedia has over 6 million articles in English.",
-            "🌐 Robo Chatbot can fetch information from Wikipedia in seconds.",
-            "🤖 I'm constantly learning! The more you ask, the smarter I become.",
-            "🎤 Use the voice feature for hands-free interaction!"
-        ]
-        
-        st.info(random.choice(tips))
-        
-        st.markdown("---")
-        st.markdown("**How to use:**")
-        st.markdown("""
-        1. Type your question in the chat box
-        2. Use voice recording for hands-free interaction
-        3. Upload files for additional context
-        4. Click suggested questions for quick ideas
-        """)
-
-# Process user input
-if user_input and user_input.strip():
-    # Add user message to chat history with timestamp
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    st.session_state.messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
-    
-    # Get bot response
-    with st.spinner("Robo is thinking..."):
-        time.sleep(0.5)  # Simulate thinking time
-        response, image = chatbot_response(user_input)
-    
-    # Add bot response to chat history with timestamp
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    message_data = {"role": "bot", "content": response, "timestamp": timestamp}
-    if image:
-        message_data["image"] = image
-    st.session_state.messages.append(message_data)
-    
-    # Rerun to update the conversation
-    st.rerun()
-
-
-
-
