@@ -7,10 +7,7 @@ import random
 import time
 import base64
 from datetime import datetime
-import speech_recognition as sr
-import pyttsx3
 import os
-from audiorecorder import audiorecorder
 
 # Set page configuration
 st.set_page_config(
@@ -19,6 +16,22 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Try to import speech recognition with fallback
+speech_recognition_available = False
+pyttsx3_available = False
+
+try:
+    import speech_recognition as sr
+    speech_recognition_available = True
+except ImportError:
+    st.sidebar.warning("Speech recognition features disabled (install speechrecognition)")
+
+try:
+    import pyttsx3
+    pyttsx3_available = True
+except ImportError:
+    st.sidebar.warning("Text-to-speech disabled (install pyttsx3)")
 
 # Custom CSS for styling with the provided color scheme
 st.markdown(f"""
@@ -130,6 +143,15 @@ st.markdown(f"""
         border-radius: 8px;
         border-left: 4px solid #2E7D32;
     }}
+    /* Warning box */
+    .warning-box {{
+        background-color: #FFF3CD;
+        color: #856404;
+        padding: 12px;
+        border-radius: 8px;
+        border-left: 4px solid #FFC107;
+        margin: 10px 0;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -139,10 +161,13 @@ st.markdown("### Your intelligent assistant with Wikipedia knowledge")
 
 # Initialize text-to-speech engine
 def init_tts():
+    if not pyttsx3_available:
+        return None
     try:
         engine = pyttsx3.init()
         voices = engine.getProperty('voices')
-        engine.setProperty('voice', voices[1].id)  # Change index for different voices
+        if voices and len(voices) > 1:
+            engine.setProperty('voice', voices[1].id)  # Change index for different voices
         engine.setProperty('rate', 150)  # Speed percent
         return engine
     except:
@@ -152,7 +177,7 @@ tts_engine = init_tts()
 
 # Function to convert text to speech
 def text_to_speech(text):
-    if tts_engine:
+    if tts_engine and pyttsx3_available:
         try:
             tts_engine.say(text)
             tts_engine.runAndWait()
@@ -161,20 +186,26 @@ def text_to_speech(text):
 
 # Function to handle voice input
 def speech_to_text():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("Listening... Speak now")
-        recognizer.adjust_for_ambient_noise(source)
-        try:
-            audio = recognizer.listen(source, timeout=5, phrase_time_limit=5)
-            text = recognizer.recognize_google(audio)
-            return text
-        except sr.UnknownValueError:
-            return "Could not understand audio"
-        except sr.RequestError:
-            return "API unavailable"
-        except sr.WaitTimeoutError:
-            return "No speech detected"
+    if not speech_recognition_available:
+        return "Speech recognition not available"
+    
+    try:
+        recognizer = sr.Recognizer()
+        with sr.Microphone() as source:
+            st.info("Listening... Speak now")
+            recognizer.adjust_for_ambient_noise(source)
+            try:
+                audio = recognizer.listen(source, timeout=5, phrase_time_limit=5)
+                text = recognizer.recognize_google(audio)
+                return text
+            except sr.UnknownValueError:
+                return "Could not understand audio"
+            except sr.RequestError:
+                return "API unavailable"
+            except sr.WaitTimeoutError:
+                return "No speech detected"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 # Sidebar
 with st.sidebar:
@@ -188,12 +219,20 @@ with st.sidebar:
     - File upload features
     """)
     
+    # Show warnings for missing dependencies
+    if not speech_recognition_available:
+        st.markdown('<div class="warning-box">⚠️ Install speechrecognition for voice features:<br><code>pip install SpeechRecognition</code></div>', unsafe_allow_html=True)
+    if not pyttsx3_available:
+        st.markdown('<div class="warning-box">⚠️ Install pyttsx3 for text-to-speech:<br><code>pip install pyttsx3</code></div>', unsafe_allow_html=True)
+    
     st.markdown("---")
     st.subheader("Settings")
     
-    # Voice settings
-    st.markdown("**Voice Settings**")
-    voice_enabled = st.checkbox("Enable Text-to-Speech", value=False)
+    # Voice settings (only show if available)
+    if pyttsx3_available:
+        voice_enabled = st.checkbox("Enable Text-to-Speech", value=False)
+    else:
+        voice_enabled = False
     
     # Clear conversation button
     if st.button("🗑️ Clear Conversation"):
@@ -318,28 +357,35 @@ col1, col2 = st.columns([2, 1])
 with col1:
     st.markdown("### 💬 Conversation")
     
-    # Voice input section
-    st.markdown("**Voice Input**")
-    voice_col1, voice_col2 = st.columns(2)
-    
-    with voice_col1:
-        if st.button("🎤 Start Recording"):
-            voice_text = speech_to_text()
-            if voice_text and voice_text not in ["Could not understand audio", "API unavailable", "No speech detected"]:
-                st.session_state.user_input = voice_text
-                st.rerun()
+    # Voice input section (only show if available)
+    if speech_recognition_available or pyttsx3_available:
+        st.markdown("**Voice Input**")
+        voice_col1, voice_col2 = st.columns(2)
+        
+        with voice_col1:
+            if speech_recognition_available:
+                if st.button("🎤 Start Recording"):
+                    voice_text = speech_to_text()
+                    if voice_text and voice_text not in ["Could not understand audio", "API unavailable", "No speech detected", "Speech recognition not available"]:
+                        st.session_state.user_input = voice_text
+                        st.rerun()
+                    else:
+                        st.warning("Could not process voice input. Please try again.")
             else:
-                st.warning("Could not process voice input. Please try again.")
-    
-    with voice_col2:
-        if st.button("🔊 Read Last Response") and voice_enabled and st.session_state.messages:
-            last_bot_message = None
-            for msg in reversed(st.session_state.messages):
-                if msg["role"] == "bot":
-                    last_bot_message = msg["content"]
-                    break
-            if last_bot_message:
-                text_to_speech(last_bot_message)
+                st.info("Voice input not available")
+        
+        with voice_col2:
+            if pyttsx3_available and voice_enabled and st.session_state.messages:
+                if st.button("🔊 Read Last Response"):
+                    last_bot_message = None
+                    for msg in reversed(st.session_state.messages):
+                        if msg["role"] == "bot":
+                            last_bot_message = msg["content"]
+                            break
+                    if last_bot_message:
+                        text_to_speech(last_bot_message)
+            else:
+                st.info("Text-to-speech not available")
     
     # Chat container
     chat_container = st.container()
@@ -430,7 +476,7 @@ if user_input and user_input.strip():
     st.session_state.messages.append(message_data)
     
     # Read response aloud if enabled
-    if voice_enabled:
+    if voice_enabled and pyttsx3_available:
         text_to_speech(response)
     
     # Rerun to update the conversation
