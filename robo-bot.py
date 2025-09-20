@@ -301,11 +301,12 @@ st.markdown(f"""
         vertical-align: middle;
         animation: pulse 2s infinite;
     }
-    @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
-        70% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
-    }
+
+@keyframes pulse {{
+    0% {{ box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }}
+    70% {{ box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }}
+    100% {{ box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }}
+}}
 </style>
 
 """, unsafe_allow_html=True)
@@ -578,6 +579,7 @@ if user_input and user_input.strip():
     
     # Rerun to update the conversation
     st.rerun()
+
 
 
 
